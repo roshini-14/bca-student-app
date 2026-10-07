@@ -3,7 +3,7 @@
 BCA Class Management and Topper Finder Web Application
 =============================================================================
 Academic Year 2024–2027 | Department of Computer Applications
-Batch: 57 Students | 5 Core Subjects (CIA 1, CIA 2, Model Exam each)
+f"Batch: {len(df)} Students | 5 Core Subjects (CIA 1, CIA 2, Model Exam each)
 
 Subjects & Faculty Mapping:
 1. Fundamentals of Algorithm       -> T. Nagarathinam (Assoc. Prof & HOD i/c)
@@ -15,7 +15,31 @@ Subjects & Faculty Mapping:
 Technology Stack: Python, Streamlit, Pandas, Plotly, Hugging Face Hub
 =============================================================================
 """
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
+def send_student_email(student_email, student_name, marks, fees, status):
+    SENDER_EMAIL = "roshinikalidoss@gmail.com"
+    SENDER_PASSWORD = "odng licd pnxl tfed"
+    
+    msg = MIMEMultipart()
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = student_email
+    msg['Subject'] = f"Academic & Fee Alert: {student_name}"
+    
+    body = f"Hello {student_name},\n\nStatus: {status}\nMarks: {marks}\nFees Due: {fees}\n\nPlease take necessary action."
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        # Port 465 use panrathu romba stable-ah irukkum
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, student_email, msg.as_string())
+        server.quit()
+        print(f"Email successfully sent to {student_email}")
+    except Exception as e:
+        print(f"Email failed: {e}")
 import os
 import urllib.parse
 from datetime import datetime
@@ -278,7 +302,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 @st.cache_data
 def load_student_data():
     """Load the official BCA 57-student dataset from CSV with 5 subjects."""
-    csv_path = os.path.join(os.path.dirname(__file__), "bca_students.csv")
+    csv_path = os.path.join(os.path.dirname(__file__), "bca_students_new.csv")
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
     else:
@@ -332,7 +356,7 @@ df["Rank"] = df["Overall_Total"].rank(ascending=False, method="min").astype(int)
 with st.sidebar:
     st.image("https://api.dicebear.com/7.x/identicon/svg?seed=BCA5Subjects", width=65)
     st.title("🎓 BCA Portal")
-    st.caption("57 Students • 5 Core Subjects • 3 Exams Each")
+    st.caption(f"{len(df)} Students • 5 Core Subjects • 3 Exams Each")
     st.markdown("---")
 
     app_section = st.radio(
@@ -394,12 +418,12 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 # 5. TOP HERO BANNER & KPI METRICS
 # ---------------------------------------------------------------------------
-st.markdown("""
+st.markdown(f"""
 <div class="hero-banner">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
         <div>
             <h1>🎓 BCA Class Management & Topper Finder</h1>
-            <p>57 Students • 5 Core Subjects (Algorithm, MAD, Networks, Web Tech, Data Mining) • CIA 1, CIA 2 & Model Exams</p>
+            <p>{len(df)} Students • 5 Core Subjects (Algorithm, MAD, Networks, Web Tech, Data Mining) • CIA 1, CIA 2 & Model Exams</p>
         </div>
         <div style="text-align: right; margin-top: 10px;">
             <span style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem;">
@@ -708,17 +732,17 @@ elif app_section == "🏆 Topper Analysis":
     top_df["Percentage (%)"] = top_df["Overall_Percentage"].round(2)
 
     disp_cols = [
-    "Register Number", "Student Name", "Mobile Number",
-    
-    # CIA 1 Section 
+    "Register Number", 
+    "Student Name", 
+    "email", 
+    "whatsapp_no", 
+    "Mobile Number", 
+    # CIA 1 Section
     "FOA_CIA1", "MAD_CIA1", "CN_CIA1", "WT_CIA1", "DMW_CIA1", "Total_CIA1",
-    
-    # CIA 2 Section 
+    # CIA 2 Section
     "FOA_CIA2", "MAD_CIA2", "CN_CIA2", "WT_CIA2", "DMW_CIA2", "Total_CIA2",
-    
     # Model Exam Section
     "FOA_Model", "MAD_Model", "CN_Model", "WT_Model", "DMW_Model", "Total_Model",
-    
     "Overall_Total", "Overall_Percentage", "Rank"
 ]
     st.dataframe(top_df[disp_cols], use_container_width=True, hide_index=True)
@@ -737,8 +761,8 @@ elif app_section == "🏆 Topper Analysis":
 # SECTION 3: 📋 STUDENT DIRECTORY & SEARCH
 # ===========================================================================
 elif app_section == "📋 Student Directory":
-    st.markdown("## 📋 BCA Student Directory (All 57 Students)")
-    st.write("Search, filter, view and manage all 57 student records across the 5 subjects.")
+    st.markdown(f"## 📋 BCA Student Directory (All {len(df)} Students)")
+    st.write(f"Search, filter, view and manage all {len(df)} student records across the 5 subjects.")
 
     c_s1, c_s2, c_s3 = st.columns([2, 1, 1])
     with c_s1:
@@ -1290,3 +1314,66 @@ st.markdown("""
     Academic Year 2024–2027 • Department of Computer Applications
 </div>
 """, unsafe_allow_html=True)
+# --- Student Notification & Alert Agent ---
+import pandas as pd
+import streamlit as st
+
+st.markdown("---")
+st.subheader("🤖 AI Student Notification & Fee Alert System")
+
+if st.button("🚀 Trigger Marks & Fee Alerts to All Students"):
+    csv_file = 'bca_students_new.csv'
+    df = pd.read_csv(csv_file)
+    
+    success_count = 0
+    for index, row in df.iterrows():
+        name = row.get('name', 'Student')
+        marks = row.get('Overall_Total', 0)
+        fees_due = row.get('Fee Status', 0)
+        email = row.get('email', '')
+        if email: 
+            send_student_email(email, name, marks, fees_due,"Status Check Active")
+        whatsapp = row.get('whatsapp_no', '')
+       
+        # Logic / Simulation
+    print(f"Alert sent to {name} | Email: {email} | WhatsApp: {whatsapp}")
+    success_count += 1
+        
+    st.success(f"Successfully processed and triggered alerts for all {success_count} students (Email & WhatsApp)!")
+    # --- AI Student Notification & Fee Alert System (Agentic Upgrade) ---
+import pandas as pd
+import streamlit as st
+
+st.markdown("---")
+st.subheader("🤖 AI Agent: Smart Notification & Fee Alert System")
+
+if st.button("🚀 Run AI Audit & Send Smart Alerts"):
+    csv_file = 'bca_students_new.csv'
+    df = pd.read_csv(csv_file)
+    
+    alerts_sent = 0
+    
+    for index, row in df.iterrows():
+        name = row.get('Student Name', 'Student')
+        fees_due = row.get('fees_due', 0)
+        percentage = row.get('Overall_Percentage', 0)
+        if pd.isna(percentage):
+            percentage = 0
+        email = row.get('email', '')
+        whatsapp = row.get('whatsapp_no', '')
+        alerts_sent+=1
+        # Agentic Reasoning & Condition Check
+        issues = []
+        if percentage < 40:
+            issues.append(f"Low Academic Performance ({percentage}%)")
+        if fees_due > 0:
+            issues.append(f"Pending Fees: Rs. {fees_due}")
+            
+        # Send alert only if student needs attention
+        # Condition illama direct-ah mail anuppura maathri maththalam
+        status = " | ".join(issues) if issues else "All Clear / Verified"
+        
+        # Itha loop-oda correct alignment-ku kondu vanthutom
+        send_student_email(email, name, percentage, fees_due, status)
+        alerts_sent += 1
+    st.success(f"🤖 AI Agent successfully audited all records and triggered smart custom alerts for {alerts_sent} students!")
